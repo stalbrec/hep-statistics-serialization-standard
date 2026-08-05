@@ -92,16 +92,16 @@ The following choices are often used and showcase the resulting functional forms
     - with $y_3(\theta, y_0, y_+, y_-) = \left\{\begin{array}{ll}(2s+d)\cdot(\theta - 1) + y_+ - y_0 &  \theta > 1 \\ s\cdot\theta^2 +d\cdot\theta & |\theta|\leq 1 \\ -(2s-d)\cdot(\theta + 1) + y_- - y_0& \theta < -1\end{array}\right.$,  
   where $s=\tfrac12(y_+ + y_-) - y_0$ and $d=\tfrac12 (y_+ - y_-)$
 - additive, polynomial (6th degree) interpolation and linear extrapolation 
-    - `{type:"add", in:"poly6", out:"poly1"}`
+    - `{"type":"add", "in":"poly6", "out":"poly1"}`
     - with $y_4(\theta, y_0, y_+, y_-) = \left\{\begin{array}{ll} \theta\cdot(y_+ - y_0) & \theta \geq 1 \\ \theta\cdot(S+\theta \cdot A (15+\theta^2\cdot(3\theta^2 -10))) & |\theta| < 1 \\ \theta\cdot(y_0 - y_-) & \theta \leq -1 \end{array}\right.$,  
   where $S=\tfrac12(y_+ - y_-)$ and $A=\tfrac{1}{16}(y_+ + y_- -2y_0)$
 - multiplicative, polynomial (6th degree) interpolation and exponential extrapolation 
-    - `{type:"mult", in:"poly6", out:"exp"}`
+    - `{"type":"mult", "in":"poly6", "out":"exp"}`
     - with $y_5(\theta, y_0, y_+, y_-) = \left\{\begin{array}{ll} (y_+/y_0)^\theta &  \theta\geq 1 \\ 1+\theta\cdot(a+\theta\cdot(b+\theta\cdot(c+\theta\cdot(d+\theta\cdot(e+\theta\cdot f)))))& |\theta|<1\\ (y_-/y_0)^{-\theta} &  \theta\leq-1\end{array}\right.$,  
     where: $\begin{array}{l}a=\tfrac18(15A_0-7S_1+A_2) \\ b=\tfrac18(-24+24S_0-9A_1+S_2) \\ c=\tfrac14(-5A_0+5S_1-A_2) \\ d=\tfrac14(12-12S_0+7A_1-S_2) \\ e = \tfrac18 (3A_0 -3S_1+A_2) \\ f=\tfrac18 (-8+8S_0-5A_1+S_2)\end{array}$,  
     with: $\begin{array}{l}S_i=\tfrac12(y_+(\log{y_+})^i + y_-(\log{y_-})^i) \\ A_i=\tfrac12(y_+(\log{y_+})^i - y_-(\log{y_-})^i)\end{array}$ and $\log t := \begin{cases}\log t & t > 0 \\0 & t \le 0 \end{cases}$
 - multiplicative, polynomial (6th degree) interpolation and linear extrapolation 
-    - `{type:"mult", in:"poly6", out:"poly1"}`
+    - `{"type":"mult", "in":"poly6", "out":"poly1"}`
     - with $y_6(\theta, y_0, y_+, y_-) = 1 + y_4(\theta, y_0, y_+, y_-)$
 
 Modifiers can be constrained. This is indicated by the component `constraint`, which identifies the type of the constraint term. In essence, the likelihood picks up a penalty term for changing the corresponding parameter too far away from its nominal value. The nominal value is, by convention, defined by the type of constraint, and is 0 for all modifiers of type `sys` (`histosys`, `normsys`) and is 1 for all modifiers of type `factor` (`normfactor`, `shapefactor`). The strength of the constraint is always such that the standard deviation of constraint distribution is $1$. 
