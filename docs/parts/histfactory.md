@@ -89,12 +89,12 @@ The following choices are often used and showcase the resulting functional forms
 
 - additive, quadratic interpolation and linear extrapolation 
     - `{"type":"add", "in":"poly2", "out":"poly1"}`
-    - with $y_3(\theta, y_0, y_+, y_-) = \left\{\begin{array}{ll}(2s+d)\cdot(\theta - 1) + y_+ - y_0 &  \theta > 1 \\ s\cdot\theta^2 +d\cdot\theta & |\theta|\leq 1 \\ -(2s+d)\cdot(\theta + 1) + y_- - y_0& \theta < -1\end{array}\right.$,  
+    - with $y_3(\theta, y_0, y_+, y_-) = \left\{\begin{array}{ll}(2s+d)\cdot(\theta - 1) + y_+ - y_0 &  \theta > 1 \\ s\cdot\theta^2 +d\cdot\theta & |\theta|\leq 1 \\ -(2s-d)\cdot(\theta + 1) + y_- - y_0& \theta < -1\end{array}\right.$,  
   where $s=\tfrac12(y_+ + y_-) - y_0$ and $d=\tfrac12 (y_+ - y_-)$
 - additive, polynomial (6th degree) interpolation and linear extrapolation 
     - `{type:"add", in:"poly6", out:"poly1"}`
     - with $y_4(\theta, y_0, y_+, y_-) = \left\{\begin{array}{ll} \theta\cdot(y_+ - y_0) & \theta \geq 1 \\ \theta\cdot(S+\theta \cdot A (15+\theta^2\cdot(3\theta^2 -10))) & |\theta| < 1 \\ \theta\cdot(y_0 - y_-) & \theta \leq -1 \end{array}\right.$,  
-  where $S=\tfrac12(y_+ - y_-)$ and $A=\tfrac{1}{6}(y_+ + y_- -2y_0)$
+  where $S=\tfrac12(y_+ - y_-)$ and $A=\tfrac{1}{16}(y_+ + y_- -2y_0)$
 - multiplicative, polynomial (6th degree) interpolation and exponential extrapolation 
     - `{type:"mult", in:"poly6", out:"exp"}`
     - with $y_5(\theta, y_0, y_+, y_-) = \left\{\begin{array}{ll} (y_+/y_0)^\theta &  \theta\geq 1 \\ 1+\theta\cdot(a+\theta\cdot(b+\theta\cdot(c+\theta\cdot(d+\theta\cdot(e+\theta\cdot f)))))& |\theta|<1\\ (y_-/y_0)^{-\theta} &  \theta\leq-1\end{array}\right.$,  
@@ -127,7 +127,7 @@ Struct of one sample:
         -  `parameter` or `parameters`: defining a string or an array of strings, respectively. Relating to the name or names of parameters controlling this modifier. Two modifiers are correlated exactly if they share the same parameters as indicated by `parameter` or `parameters`. In such a case, it is mandatory that they share the same constraint term. If this is not the case, the behavior is undefined. 
         -  `data`: [optional]{.smallcaps} relevant data for modifier. Its format depends on `type`, which is described above.
         -  `constraint`: [optional]{.smallcaps} definition of how the modifier is constrained. Its format depends on `type`, which is described above.
-        -  `interpolation`: [optional]{.smallcaps} struct defining how the effect of the modifier is calculated within and outside of the boundaries $\theta=\pm 1$. It has the components `type`, `in` and `out` as described above. If this is ommited here for at least one modifier the top-level component `default_interpolation` becomes [required]{.smallcaps}.
+        -  `interpolation`: [optional]{.smallcaps} struct defining how the effect of the modifier is calculated within and outside of the boundaries $\theta=\pm 1$. It has the components `type`, `in` and `out` as described above. If this is omitted here for at least one modifier the top-level component `default_interpolation` becomes [required]{.smallcaps}.
 
 ```json title="HistFactory"
 {
