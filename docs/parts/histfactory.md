@@ -53,56 +53,72 @@ The way modifiers affect the yield in the corresponding bin is subject to an int
 -   `in`: the interpolating function used inside the bounds, $|\theta|<1$, 
 -   `out`: the extrapolating function used outside the bounds, $|\theta|\geq1$, if `null` the same function as for interpolation is used.
 
-The response is a scalar function $y(\theta;y_-,y_0,y_+)$ with anchors $y(0)=y_0$ and $y(\pm1)=y_\pm$, where $y_0$ and $y_\pm$ correspond to the nominal and `hi`/`lo`, respectively. 
+The final modified prediction $y(\theta_1,\dots,\theta_n)$ is obtained by combining the sample's nominal prediction $y_0$ with a normalized response function $I(\theta; y_-, y_0, y_+)$ for each parameter $\theta_i$. Unlike $y$, $I$ is anchored relative to $y_0$ rather than to it directly, with the anchor values depending on the combination `type`:
 
-For the two option for `type="mult"` $y(\theta, y_0, y_+, y_-)$ combines to:
+- For `type="add"`: $I(0) = 0$, $I(+1) = y_+ - y_0$, $I(-1) = y_- - y_0$
+- For `type="mult"`: $I(0) = 1$, $I(+1) = y_+ / y_0$, $I(-1) = y_- / y_0$
 
-$$  
-y(\theta) = y_0 \cdot \prod_i y(\theta_i, y_0, y_+, y_-),
-$$
-
-while for `type="add"` the combinations follows as:
+For `type="mult"`, the combined prediction follows as:
 
 $$
-y(\theta) = y_0 + \sum_i y(\theta_i, y_0, y_+, y_-).
+y(\theta_1,\dots,\theta_n) = y_0 \cdot \prod_i I(\theta_i; y_{i,-}, y_0, y_{i,+}),
 $$
 
-The following functions are allowed for `in` and `out`:  
+while for `type="add"` the combination follows as:
+
+$$
+y(\theta_1,\dots,\theta_n) = y_0 + \sum_i I(\theta_i; y_{i,-}, y_0, y_{i,+}).
+$$
+
+Here $y_{i,-}$ and $y_{i,+}$ denote the `lo`/`hi` variations associated with parameter $\theta_i$; $y_0$, the sample's nominal prediction, is shared across all parameters and enters only through the combination above, never through $I$ itself.
+
+The following functions are allowed for `in` and `out`:
 
 - `poly1`: linear function
 - `poly2`: parabolic function
 - `poly6`: degree-6 polynomial
 - `exp`: exponential function
 
-The choice of functions for `in` and `out`, together with the anchor conditions ($y(0) = y_0$, $y(\pm1) = y_\pm$) and, where required, matching of first and second derivatives at the boundary ($\left.\frac{\mathrm{d}y}{\mathrm{d}\theta}\right|_{\theta=\pm 1}$ and $\left.\frac{\mathrm{d}^2y}{\mathrm{d}\theta}\right|_{\theta=\pm 1}$), fixes all free parameters of the chosen functions except for $\theta$ itself.
+The choice of functions for `in` and `out`, together with the anchor conditions above and, where required, matching of first and second derivatives at the boundary ($\left.\frac{\mathrm{d}I}{\mathrm{d}\theta}\right|_{\theta=\pm 1}$ and $\left.\frac{\mathrm{d}^2I}{\mathrm{d}\theta}\right|_{\theta=\pm 1}$), fixes all free parameters of the chosen functions except for $\theta$ itself. 
 
 
-The following choices are often used and showcase the resulting functional forms for common combinations of `type`, `in` and `out`:
+The following choices of $I$ are often used and showcase the resulting functional forms for common combinations of `type`, `in` and `out`. Note that for `type="mult"`, all interior and extrapolation terms are expressed as ratios $y_\pm/y_0$ rather than raw $y_\pm$, so that the anchor condition $I(0)=1$ holds independent of $y_0$; for `type="add"`, terms are expressed as differences $y_\pm - y_0$, consistent with the anchor $I(0)=0$.
 
 - additive, piecewise linear: 
     - `{"type":"add", "in":"poly1", "out":null}`
-    - with $y_1(\theta, y_0, y_+, y_-) = \left\{ \begin{array}{ll} \theta\cdot(y_+ - y_0) &  \theta\geq0 \\ \theta\cdot(y_0-y_-) &  \theta<0\end{array}\right.$
-
+    - with $I_1(\theta; y_-, y_0, y_+) = \left\{ \begin{array}{ll} \theta\cdot(y_+ - y_0) &  \theta\geq0 \\ \theta\cdot(y_0-y_-) &  \theta<0\end{array}\right.$
 - multiplicative, piecewise exponential: 
     - `{"type":"mult", "in":"exp", "out":null}`
-    - with $y_2(\theta, y_0, y_+, y_-) = \left\{ \begin{array}{ll} (y_+/y_0)^\theta &  \theta\geq0 \\ (y_-/y_0)^{-\theta} &  \theta<0 \end{array}\right.$
-
+    - with $I_2(\theta; y_-, y_0, y_+) = \left\{ \begin{array}{ll} (y_+/y_0)^\theta &  \theta\geq0 \\ (y_-/y_0)^{-\theta} &  \theta<0 \end{array}\right.$
 - additive, quadratic interpolation and linear extrapolation 
     - `{"type":"add", "in":"poly2", "out":"poly1"}`
-    - with $y_3(\theta, y_0, y_+, y_-) = \left\{\begin{array}{ll}(2s+d)\cdot(\theta - 1) + y_+ - y_0 &  \theta > 1 \\ s\cdot\theta^2 +d\cdot\theta & |\theta|\leq 1 \\ -(2s-d)\cdot(\theta + 1) + y_- - y_0& \theta < -1\end{array}\right.$,  
+    - with $I_3(\theta; y_-, y_0, y_+) = \left\{\begin{array}{ll}(2s+d)\cdot(\theta - 1) + y_+ - y_0 &  \theta > 1 \\ s\cdot\theta^2 +d\cdot\theta & |\theta|\leq 1 \\ -(2s-d)\cdot(\theta + 1) + y_- - y_0& \theta < -1\end{array}\right.$,
   where $s=\tfrac12(y_+ + y_-) - y_0$ and $d=\tfrac12 (y_+ - y_-)$
 - additive, polynomial (6th degree) interpolation and linear extrapolation 
     - `{"type":"add", "in":"poly6", "out":"poly1"}`
-    - with $y_4(\theta, y_0, y_+, y_-) = \left\{\begin{array}{ll} \theta\cdot(y_+ - y_0) & \theta \geq 1 \\ \theta\cdot(S+\theta \cdot A (15+\theta^2\cdot(3\theta^2 -10))) & |\theta| < 1 \\ \theta\cdot(y_0 - y_-) & \theta \leq -1 \end{array}\right.$,  
+    - with $I_4(\theta; y_-, y_0, y_+) = \left\{\begin{array}{ll} \theta\cdot(y_+ - y_0) & \theta \geq 1 \\ \theta\cdot(S+\theta \cdot A (15+\theta^2\cdot(3\theta^2 -10))) & |\theta| < 1 \\ \theta\cdot(y_0 - y_-) & \theta \leq -1 \end{array}\right.$,
   where $S=\tfrac12(y_+ - y_-)$ and $A=\tfrac{1}{16}(y_+ + y_- -2y_0)$
-- multiplicative, polynomial (6th degree) interpolation and exponential extrapolation 
+- multiplicative, polynomial (6th degree) interpolation and exponential extrapolation
     - `{"type":"mult", "in":"poly6", "out":"exp"}`
-    - with $y_5(\theta, y_0, y_+, y_-) = \left\{\begin{array}{ll} (y_+/y_0)^\theta &  \theta\geq 1 \\ 1+\theta\cdot(a+\theta\cdot(b+\theta\cdot(c+\theta\cdot(d+\theta\cdot(e+\theta\cdot f)))))& |\theta|<1\\ (y_-/y_0)^{-\theta} &  \theta\leq-1\end{array}\right.$,  
-    where: $\begin{array}{l}a=\tfrac18(15A_0-7S_1+A_2) \\ b=\tfrac18(-24+24S_0-9A_1+S_2) \\ c=\tfrac14(-5A_0+5S_1-A_2) \\ d=\tfrac14(12-12S_0+7A_1-S_2) \\ e = \tfrac18 (3A_0 -3S_1+A_2) \\ f=\tfrac18 (-8+8S_0-5A_1+S_2)\end{array}$,  
-    with: $\begin{array}{l}S_i=\tfrac12(y_+(\log{y_+})^i + y_-(\log{y_-})^i) \\ A_i=\tfrac12(y_+(\log{y_+})^i - y_-(\log{y_-})^i)\end{array}$ and $\log t := \begin{cases}\log t & t > 0 \\0 & t \le 0 \end{cases}$
+    - with $I_5(\theta; y_-, y_0, y_+) = \left\{\begin{array}{ll} (y_+/y_0)^\theta &  \theta\geq 1 \\ 1+\theta\cdot(a+\theta\cdot(b+\theta\cdot(c+\theta\cdot(d+\theta\cdot(e+\theta\cdot f)))))& |\theta|<1\\ (y_-/y_0)^{-\theta} &  \theta\leq-1\end{array}\right.$,
+    where:
+    $\begin{array}{l}
+    a=\tfrac18(15A_0-7S_1+A_2) \\
+    b=\tfrac18(-24+24S_0-9A_1+S_2) \\
+    c=\tfrac14(-5A_0+5S_1-A_2) \\
+    d=\tfrac14(12-12S_0+7A_1-S_2) \\
+    e=\tfrac18(3A_0-3S_1+A_2) \\
+    f=\tfrac18(-8+8S_0-5A_1+S_2)
+    \end{array}$,
+    with $u=y_+/y_0$, $v=y_-/y_0$, $\log t := \begin{cases}\log t & t>0\\0 & t\leq0\end{cases}$, and
+    $\begin{array}{l}
+    S_0=\tfrac12(u+v) \quad A_0=\tfrac12(u-v) \\
+    S_1=\tfrac12(u\log u-v\log v) \quad A_1=\tfrac12(u\log u+v\log v) \\
+    S_2=\tfrac12(u\log^2 u+v\log^2 v) \quad A_2=\tfrac12(u\log^2 u-v\log^2 v)
+    \end{array}$
 - multiplicative, polynomial (6th degree) interpolation and linear extrapolation 
     - `{"type":"mult", "in":"poly6", "out":"poly1"}`
-    - with $y_6(\theta, y_0, y_+, y_-) = 1 + y_4(\theta, y_0, y_+, y_-)$
+    - with $I_6(\theta; y_-, y_0, y_+) = 1 + I_4(\theta; y_-/y_0, 1, y_+/y_0)$
 
 Modifiers can be constrained. This is indicated by the component `constraint`, which identifies the type of the constraint term. In essence, the likelihood picks up a penalty term for changing the corresponding parameter too far away from its nominal value. The nominal value is, by convention, defined by the type of constraint, and is 0 for all modifiers of type `sys` (`histosys`, `normsys`) and is 1 for all modifiers of type `factor` (`normfactor`, `shapefactor`). The strength of the constraint is always such that the standard deviation of constraint distribution is $1$. 
 
