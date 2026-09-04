@@ -33,7 +33,7 @@ The modifiers depend on a set of nuisance parameters $\theta$, where each modifi
 -   A *correlated shape systematic* or `histosys` modifier is an     additive modifier that adds or subtracts a constant step function     $\chi^f$, scaled with a single factor $\alpha$. The modifier     contains a `data` section, which contains the subsections     $\texttt{hi}$ and $\texttt{lo}$ that help to define the step     function $\chi^f$. They contain `contents`, which define the     bin-wise additions or subtractions for $\alpha=1$. The functional form of $\chi^f$ for intermediate and outlying $\alpha$ is set by the `interpolation` component, described below. Here,     $\theta_i=\alpha$. 
 -   A *normalization systematic* or `normsys` modifier is a     multiplicative modifier that scales the entire sample with the same     constant factor $f$ that is a function of $\alpha$. The modifier     contains a `data` section, which contains the values $\texttt{hi}$     and $\texttt{lo}$ that help to define $f$. There are different     functional forms that can be chosen for $f$. However, by convention     $f(\alpha=0)=1$, $f(\alpha=+1)=$"`hi`" and     $f(\alpha=-1)=$"`lo`". The functional form of $f$ for intermediate and outlying $\alpha$ is set by the `interpolation` component, described below. In this case, $\theta_i=\alpha$. 
 -   A *normalization factor* or `normfactor` modifier is a     multiplicative modifier that scales the entire sample in this region     with the value of the parameter $\mu$ itself. In this case,     $\theta_i=\mu$. 
--   The `staterror` modifier is a shorthand for encoding uncorrelated     statistical uncertainties on the values of the step-functions, using     a variant[^1] of the Barlow-Beeston Method [@barlowbeeston]. Here,     the relative uncertainty on the sum of all samples in this region     containing the `staterror` modifier is computed bin-by-bin. Then, a     constrained *uncorrelated shape systematic* (`shapesys`) is created,     encoding these relative uncertainties in the corresponding `Poisson`     (or `Gaussian`) constraint term. 
+-   The `staterror` modifier is a shorthand for encoding uncorrelated     statistical uncertainties on the values of the step-functions, using     a variant[^1] of the Barlow-Beeston Method [@barlowbeeston]. Here,     the relative uncertainty on the sum of all samples in this region     containing the `staterror` modifier is computed bin-by-bin. Then, a     constrained *uncorrelated shape systematic* (`shapesys`) is created,     encoding these relative uncertainties in the corresponding constraint     term. 
 
 The different modifies and their descriptions are also summarized in the following table: 
 
@@ -120,11 +120,9 @@ The following choices of $I$ are often used and showcase the resulting functiona
     - `{"type":"mult", "in":"poly6", "out":"poly1"}`
     - with $I_6(\theta; y_-, y_0, y_+) = 1 + I_4(\theta; y_-/y_0, 1, y_+/y_0)$
 
-Modifiers can be constrained. This is indicated by the component `constraint`, which identifies the type of the constraint term. In essence, the likelihood picks up a penalty term for changing the corresponding parameter too far away from its nominal value. The nominal value is, by convention, defined by the type of constraint, and is 0 for all modifiers of type `sys` (`histosys`, `normsys`) and is 1 for all modifiers of type `factor` (`normfactor`, `shapefactor`). The strength of the constraint is always such that the standard deviation of constraint distribution is $1$. 
+Modifiers can be constrained. This is indicated by the component `constraint` (single-parameter modifiers) or `constraints` (multi-parameter modifiers), which name one or more distributions defined elsewhere in this document's top-level `distributions` list. In essence, the likelihood picks up a penalty term for changing a constrained parameter too far away from its nominal value.
 
-The supported constraint distributions, also called constraint types, are `Gauss` for a gaussian with unit width (a gaussian distribution with a variance of $1$), `Poisson` for a unit Poissonian (e.g. a continous Poissonian with a central value 1), or `LogNormal` for a unit LogNormal,. If a constraint is given, a corresponding distribution will be considered in addition to the `aux_likelihood` section of the likelihood, constraining the parameter to its nominal value. 
-
-An exception to this is provided by the `staterror` modifier as described above, and the `shapesys` for which a Poissonian constraint is defined with the central values defined as the squares of the values defined in `vals`. 
+The `histosys`, `normsys`, and `normfactor` modifiers are constrained via `constraint`, referencing an existing distribution by name; conventionally a `gaussian_dist`, but not restricted to it. The `shapesys` and `staterror` modifiers are constrained via `constraints`, one entry per parameter (parallel to `parameters`), each referencing a distribution; conventionally `gaussian_dist` or `poisson_dist`. Entries in `constraints` [may]{.smallcaps} be `null` for a parameter that carries no constraint.
 
 The components of a HistFactory distribution are: 
     
@@ -140,10 +138,11 @@ Struct of one sample:
     -   `modifiers`: array of structs with each struct containing the modifiers for this sample.
     Struct of one modifier:
         -  `type`: type of the modifier
-        -  `parameter` or `parameters`: defining a string or an array of strings, respectively. Relating to the name or names of parameters controlling this modifier. Two modifiers are correlated exactly if they share the same parameters as indicated by `parameter` or `parameters`. In such a case, it is mandatory that they share the same constraint term. If this is not the case, the behavior is undefined. 
+        -  `parameter` or `parameters`: defining a string or an array of strings, respectively. Relating to the name or names of parameters controlling this modifier.
         -  `data`: [optional]{.smallcaps} relevant data for modifier. Its format depends on `type`, which is described above.
-        -  `constraint`: [optional]{.smallcaps} definition of how the modifier is constrained. Its format depends on `type`, which is described above.
+        -  `constraint` or `constraints`: [optional]{.smallcaps} definition of how the modifier is constrained; `constraint` for modifiers with a single `parameter`, `constraints` for modifiers with multiple `parameters`. Its format depends on `type`, which is described above.
         -  `interpolation`: [optional]{.smallcaps} struct defining how the effect of the modifier is calculated within and outside of the boundaries $\theta=\pm 1$. It has the components `type`, `in` and `out` as described above. If this is omitted here for at least one modifier the top-level component `default_interpolation` becomes [required]{.smallcaps}.
+Two modifiers are correlated exactly if they share the same parameters as indicated by `parameter` or `parameters`. In such a case, they [must]{.smallcaps} share the same constraint term. If this is not the case, the behavior is undefined.
 
 ```json title="HistFactory"
 {
@@ -161,20 +160,21 @@ Struct of one sample:
       "modifiers": [
         { "parameter": "Lumi", "type": "normfactor" },
         { "parameter": "mu_signal_strength", "type": "normfactor" },
-        { "constraint": "Gauss", "data": { "hi": 1.1, "lo": 0.9 }, 
+        { "constraint": "my_normalization_systematic_1_constraint", "data": { "hi": 1.1, "lo": 0.9 }, 
           "parameter": "my_normalization_systematic_1", 
           "type": "normsys" },
-        { "constraint": "Poisson", "type": "staterror", 
+        { "constraints": ["gamma_stat_1_constraint", "gamma_stat_2_constraint"], "type": "staterror", 
           "parameters": ["gamma_stat_1","gamma_stat_2"]},
-        { "constraint": "Gauss", "type": "histosys", 
+        { "constraint": "my_correlated_shape_systematic_1_constraint", "type": "histosys", 
           "data": { 
             "hi": { "contents": [ -2.5, -3.1 ] }, 
             "lo": { "contents": [ 2.2, 3.7 ] } 
            }, 
            "interpolation": { "type": "add", "in": "poly6", "out": "poly1" },
            "parameter": "my_correlated_shape_systematic_1" },
-        { "constraint": "Poisson", "data": { "vals": [ 0.0, 1.2 ] }, 
-          "parameter": "my_uncorrelated_shape_systematic_2", 
+        { "constraints": ["my_shapesys_2_bin0_constraint", "my_shapesys_2_bin1_constraint"],
+          "data": { "vals": [ 0.0, 1.2 ] }, 
+          "parameters": ["my_uncorrelated_shape_systematic_2_bin0", "my_uncorrelated_shape_systematic_2_bin1"], 
           "type": "shapesys" }
       ]
     },
