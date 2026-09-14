@@ -33,7 +33,7 @@ The modifiers depend on a set of nuisance parameters $\theta$, where each modifi
 -   A *correlated shape systematic* or `histosys` modifier is an     additive modifier that adds or subtracts a constant step function     $\chi^f$, scaled with a single factor $\alpha$. The modifier     contains a `data` section, which contains the subsections     $\texttt{hi}$ and $\texttt{lo}$ that help to define the step     function $\chi^f$. They contain `contents`, which define the     bin-wise additions or subtractions for $\alpha=1$. The functional form of $\chi^f$ for intermediate and outlying $\alpha$ is set by the `interpolation` component, described below. Here,     $\theta_i=\alpha$. 
 -   A *normalization systematic* or `normsys` modifier is a     multiplicative modifier that scales the entire sample with the same     constant factor $f$ that is a function of $\alpha$. The modifier     contains a `data` section, which contains the values $\texttt{hi}$     and $\texttt{lo}$ that help to define $f$. There are different     functional forms that can be chosen for $f$. However, by convention     $f(\alpha=0)=1$, $f(\alpha=+1)=$"`hi`" and     $f(\alpha=-1)=$"`lo`". The functional form of $f$ for intermediate and outlying $\alpha$ is set by the `interpolation` component, described below. In this case, $\theta_i=\alpha$. 
 -   A *normalization factor* or `normfactor` modifier is a     multiplicative modifier that scales the entire sample in this region     with the value of the parameter $\mu$ itself. In this case,     $\theta_i=\mu$. 
--   The `staterror` modifier is a shorthand for encoding uncorrelated     statistical uncertainties on the values of the step-functions, using     a variant[^1] of the Barlow-Beeston Method [@barlowbeeston]. Here,     the relative uncertainty on the sum of all samples in this region     containing the `staterror` modifier is computed bin-by-bin. Then, a     constrained *uncorrelated shape systematic* (`shapesys`) is created,     encoding these relative uncertainties in the corresponding constraint     term. 
+-   The `staterror` modifier is a shorthand for encoding uncorrelated statistical uncertainties on the values of the step-functions, using a variant[^1] of the Barlow-Beeston Method [@barlowbeeston]. It acts as a `shapefactor` whose per-bin relative uncertainty is derived from the samples: $\delta_i=\sqrt{\sum_s \sigma_{s,i}^2}\,/\sum_s y_{s,i}$, with $y_{s,i}$ and $\sigma_{s,i}$ the `contents` and `errors` of all samples in this region carrying a `staterror` modifier. The distributions named in `constraints` [should]{.smallcaps} be constructed as a `barlow_beeston_lite_poisson_constraint_dist` with `x` naming the $\gamma_i$ and `expected` holding $\tau_i=\delta_i^{-2}$. 
 
 The different modifiers and their descriptions are also summarized in the following table: 
 
@@ -44,8 +44,6 @@ The different modifiers and their descriptions are also summarized in the follow
 | `normfactor`                 | Normalization factor          | $\kappa(x,\mu) = \mu$                        | $\mu$                         | 1                              |
 | `shapefactor`, `staterror`   | Shape factor                  | $\kappa(x,\vec{\gamma}) = \chi_b^{\gamma}$   | $\gamma_0$, ..., $\gamma_n$   | #bins                          |
 
-
-The `staterror` modifier is a special subtype of `shapefactor`, where the mean of the constraint is given as the sum of the predictions of all the samples carrying a `staterror` modifier in this bin.  
 
 The way modifiers affect the yield in the corresponding bin is subject to an interpolation function. The `histosys` and `normsys` modifiers thus allow for an additional component `interpolation`, a struct with the components 
 
@@ -120,7 +118,7 @@ The following choices of $I$ are often used and showcase the resulting functiona
     - `{"type":"mult", "in":"poly6", "out":"poly1"}`
     - with $I_6(\theta; y_-, y_0, y_+) = 1 + I_4(\theta; y_-/y_0, 1, y_+/y_0)$
 
-Modifiers can be constrained. This is indicated by the component `constraints`, which names one or more distributions defined in the top-level component `distributions`. These are typically of type `gaussian_dist` or `poisson_dist`, but any distribution type is allowed. In essence, the likelihood picks up a penalty term for changing a constrained parameter too far away from its nominal value. 
+Modifiers can be constrained. This is indicated by the component `constraints`, which names one or more distributions defined in the top-level component `distributions`. These are typically of type `gaussian_dist` or `poisson_dist`, but any distribution type is allowed. In essence, the likelihood picks up a penalty term for changing a constrained parameter too far away from its nominal value. By convention, the nominal value is 0 for the parameters of `histosys` and `normsys` modifiers and 1 for those of all other types. Constraints on `histosys` and `normsys` parameters [should]{.smallcaps} be a `gaussian_dist` with `mean` 0 and `sigma` 1, such that $\alpha=\pm1$ corresponds to the `hi` and `lo` variations. 
 
 The components of a HistFactory distribution are: 
     
